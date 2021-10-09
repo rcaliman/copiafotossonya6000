@@ -1,7 +1,10 @@
+#!/usr/bin/python3
+
 import os
 from getpass import getuser
 from datetime import datetime
 from shutil import copy2
+from PIL import Image
 
 
 path_sdcard = '/media/' + str(getuser()) + '/disk'
@@ -65,6 +68,7 @@ def cria_diretorios(_arquivo: str) -> None:
     :return: None
     """
     os.mkdir(str(path_servidor) + str(data_de_criacao(_arquivo)))
+    os.mkdir(str(path_servidor) + str(data_de_criacao(_arquivo) + '/thumbs'))
     for tipo_de_arquivo in tipos_de_arquivos:
         os.mkdir(str(path_servidor) + str(data_de_criacao(_arquivo) + '/' + tipo_de_arquivo))
 
@@ -78,6 +82,46 @@ def copia_arquivo(_arquivo: str) -> None:
     copy2(_arquivo, str(path_servidor) + str(data_de_criacao(_arquivo) + '/' + _arquivo[-3:].lower()))
 
 
+def cria_html_thumbs(_local_dos_arquivos, _nome_do_arquivo):
+    _arquivo_html = _local_dos_arquivos + 'thumbs.html'
+    with open(_arquivo_html, 'a') as _arquivo:
+        _arquivo.write(f"""
+                <div style='padding:15px;'>
+                    <p>
+                        <a style='text-decoration: none' href='arw/{_nome_do_arquivo.replace('.JPG','.ARW')}'>
+                            <strong style='font-family: "helvetica";font-size: 26px;'>
+                                [ RAW ]
+                            </strong>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a style='text-decoration: none' href='jpg/{_nome_do_arquivo}'>
+                            <strong style='font-family: "helvetica";font-size: 26px;'>
+                                [ JPG ]
+                            </strong>
+                        </a>
+                    </p>
+                    <a href='jpg/{_nome_do_arquivo}'>
+                        <img src='thumbs/{_nome_do_arquivo}'>
+                    </a>
+                </div>
+            """)
+
+
+def cria_thumbs(_arquivo: str) -> None:
+    """
+    cria thumbnails dos arquivos .jpg
+    :param _arquivo: str
+    :return: None
+    """
+    tamanho_thumbs = 900, 900
+    local_de_salvamento = str(path_servidor) + str(data_de_criacao(_arquivo)) + '/thumbs/'
+    nome_de_salvamento = (_arquivo.rsplit('/', 1))[1]
+    image = Image.open(_arquivo)
+    image.thumbnail(tamanho_thumbs, 3)
+    image.save(local_de_salvamento + nome_de_salvamento)
+    cria_html_thumbs(str(path_servidor) + str(data_de_criacao(_arquivo)) + '/', nome_de_salvamento)
+
+
 def executa_copia():
     """
     copia os arquivos do cartão de memoria para o HD
@@ -85,15 +129,20 @@ def executa_copia():
     """
     for tipo in tipos_de_arquivos:
         # para os tipos de arquivos declarados na lista no inicio do programa
-        for arq in busca_arquivos(tipo):
+        for _arquivo in busca_arquivos(tipo):
             # busca todos os arquivos dos tipos declarados na lista no inicio do programa
-            if not diretorio_existe(arq):
+            if not diretorio_existe(_arquivo):
                 # cria os diretorios relativo a data das fotos e os subdiretorios para os tipos de arquivos
-                cria_diretorios(arq)
+                cria_diretorios(_arquivo)
                 # copia os arquivos para seus respectivos diretorios
-            nome_do_arquivo = ((str(arq).split('/'))[-1:])[0]
+            nome_do_arquivo = ((str(_arquivo).split('/'))[-1:])[0]
             if nome_do_arquivo not in busca_arquivos_anteriores():
-                copia_arquivo(arq)
+                copia_arquivo(_arquivo)
+                print(f'copiando arquivo {_arquivo}')
+                if 'jpg' in tipo:
+                    cria_thumbs(_arquivo)
+        print('FIM!')
 
 
 executa_copia()
+
