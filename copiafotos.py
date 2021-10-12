@@ -129,7 +129,13 @@ def copia_arquivo(_arquivo: str) -> None:
     copy2(_arquivo, destino)
 
 
-def cria_html_thumbs(_local_dos_arquivos, _nome_do_arquivo):
+def cria_html_thumbs(_local_dos_arquivos: str, _nome_do_arquivo: str) -> None:
+    """
+    cria o html para exibir o conteudo dos diretorios criados
+    :param _local_dos_arquivos: str
+    :param _nome_do_arquivo: str
+    :return: None
+    """
     _arquivo_html = _local_dos_arquivos + 'thumbs.html'
     with open(_arquivo_html, 'a') as _arquivo:
         _arquivo.write(f"""
