@@ -57,7 +57,7 @@ def diretorio_destino(_arquivo) -> str:
     :param _arquivo: str
     :return: str
     """
-    return PATH_SERVIDOR + data_de_criacao(_arquivo)
+    return PATH_SERVIDOR + data_de_criacao(_arquivo) + '/'
 
 
 def nome_arquivo(_arquivo) -> str:
@@ -69,6 +69,15 @@ def nome_arquivo(_arquivo) -> str:
     return _arquivo.rsplit('/', 1)[1]
 
 
+def tipo_arquivo(_arquivo: str) -> str:
+    """
+    retorna o tipo do arquivo baseado na extensao
+    :param _arquivo: str
+    :return: str
+    """
+    return (_arquivo.rsplit('.')[1]).lower()
+
+
 def html_video(_arquivo: str) -> None:
     """
     cria o html para listar os videos no final do arquivo thumbs.html
@@ -76,7 +85,7 @@ def html_video(_arquivo: str) -> None:
     :return: None
     """
     _arquivo_html = diretorio_destino(_arquivo) + '/thumbs.html'
-    with open(_arquivo_html,'a') as thumbs:
+    with open(_arquivo_html, 'a') as thumbs:
         thumbs.write(f"""
                 <div style='padding:15px;'>
                     <h3>VIDEO: 
@@ -105,9 +114,9 @@ def cria_diretorios(_arquivo: str) -> None:
     :return: None
     """
     os.mkdir(diretorio_destino(_arquivo))
-    os.mkdir(diretorio_destino(_arquivo) + '/thumbs')
+    os.mkdir(diretorio_destino(_arquivo) + 'thumbs')
     for tipo_de_arquivo in TIPOS_DE_ARQUIVO:
-        os.mkdir(diretorio_destino(_arquivo) + '/' + tipo_de_arquivo)
+        os.mkdir(diretorio_destino(_arquivo) + tipo_de_arquivo)
 
 
 def copia_arquivo(_arquivo: str) -> None:
@@ -116,7 +125,8 @@ def copia_arquivo(_arquivo: str) -> None:
     :param _arquivo: str
     :return: None
     """
-    copy2(_arquivo, diretorio_destino(_arquivo) + '/' + _arquivo[-3:].lower())
+    destino = diretorio_destino(_arquivo) + tipo_arquivo(_arquivo)
+    copy2(_arquivo, destino)
 
 
 def cria_html_thumbs(_local_dos_arquivos, _nome_do_arquivo):
@@ -151,12 +161,12 @@ def cria_thumbs(_arquivo: str) -> None:
     :return: None
     """
     tamanho_thumbs = 900, 900
-    local_de_salvamento = diretorio_destino(_arquivo) + '/thumbs/'
+    local_de_salvamento = diretorio_destino(_arquivo) + 'thumbs/'
     nome_de_salvamento = (_arquivo.rsplit('/', 1))[1]
     image = Image.open(_arquivo)
     image.thumbnail(tamanho_thumbs, 3)
     image.save(local_de_salvamento + nome_de_salvamento)
-    cria_html_thumbs(diretorio_destino(_arquivo) + '/', nome_de_salvamento)
+    cria_html_thumbs(diretorio_destino(_arquivo), nome_de_salvamento)
 
 
 def executa_copia():
