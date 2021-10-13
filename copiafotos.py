@@ -9,18 +9,20 @@ from PIL import Image
 
 PATH_SDCARD = '/media/' + str(getuser()) + '/disk'
 PATH_SERVIDOR = '/home/calmanet/arquivos/'
+HTML_INDICE = PATH_SERVIDOR + 'indice_de_fotos.html'
 TIPOS_DE_ARQUIVO = ['jpg', 'arw', 'mp4']
 
 
-def busca_arquivos(_tipo: str) -> list:
-    """path_sdcard = '/media/' + str(getuser()) + '/disk'
+def busca_arquivos(_tipo: str, _local: str) -> list:
+    """
     busca pelo tipo de arquivo na path especificada e retorna
     uma lista com a path completa de todos os arquivos desse tipo
     :param _tipo: str
+    :param _local: str
     :return: list
     """
     lista_arquivos = []
-    for conteudo_diretorios in os.walk(PATH_SDCARD):
+    for conteudo_diretorios in os.walk(_local):
         path, _, *arquivos = conteudo_diretorios
         for arquivo in arquivos[0]:
             if f'.{_tipo.upper()}' in arquivo or f'.{_tipo.lower()}' in arquivo:
@@ -67,6 +69,14 @@ def nome_arquivo(_arquivo) -> str:
     :return: str
     """
     return _arquivo.rsplit('/', 1)[1]
+
+
+def path_relativa(_arquivo: str) -> str:
+    return _arquivo.split('/')[-2] + '/' + _arquivo.split('/')[-1]
+
+
+def path_absoluta(_arquivo: str) -> str:
+    return _arquivo.rsplit('/', 1)[0]
 
 
 def tipo_arquivo(_arquivo: str) -> str:
@@ -182,7 +192,7 @@ def executa_copia():
     """
     for tipo in TIPOS_DE_ARQUIVO:
         # para os tipos de arquivos declarados na lista no inicio do programa
-        for _arquivo in busca_arquivos(tipo):
+        for _arquivo in busca_arquivos(tipo, PATH_SDCARD):
             # busca todos os arquivos dos tipos declarados na lista no inicio do programa
             if not diretorio_existe(_arquivo):
                 # cria os diretorios relativo a data das fotos e os subdiretorios para os tipos de arquivos
@@ -199,5 +209,59 @@ def executa_copia():
     print('FIM!')
 
 
+def cria_index_html():
+    infos = ['', '']
+    if os.path.isfile(HTML_INDICE):
+        os.remove(HTML_INDICE)
+    for _arquivo in (busca_arquivos('html', PATH_SERVIDOR)):
+        if 'thumbs' in _arquivo:
+            if os.path.isfile(path_absoluta(_arquivo) + '/info.txt'):
+                infos.clear()
+                with open(path_absoluta(_arquivo) + '/info.txt') as info:
+                    for i in info:
+                        infos.append(i.strip())
+            with open(HTML_INDICE, 'a') as index:
+                index.write(f"""
+                    <div>
+                        <h4>
+                            <a href={path_relativa(_arquivo)}>
+                                {path_relativa(_arquivo).split('/')[0]}
+                            </a>
+                                <br>{infos[0].upper()}
+                                <br>{infos[1]}
+                        </h4>
+                    </div>
+                    
+                """)
+
+
+def html_header():
+    return """
+        <html>
+            <head>
+            </head>
+            <body>
+    """
+
+
+def html_footer():
+    return """
+        </body>
+        </html>
+    """
+
+
+def formata_html(_arquivo):
+    with open(_arquivo, 'r') as html_indice:
+        html_indice_original = html_indice.read()
+    with open(_arquivo, 'w') as html_indice_novo:
+        html_indice_novo.write(html_header())
+        html_indice_novo.write(html_indice_original)
+        html_indice_novo.write(html_footer())
+
+
 executa_copia()
+cria_index_html()
+formata_html(HTML_INDICE)
+
 
