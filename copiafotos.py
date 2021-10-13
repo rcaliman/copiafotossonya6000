@@ -72,10 +72,20 @@ def nome_arquivo(_arquivo) -> str:
 
 
 def path_relativa(_arquivo: str) -> str:
+    """
+    extrai a path relativa de um arquivo
+    :param _arquivo: str
+    :return: str
+    """
     return _arquivo.split('/')[-2] + '/' + _arquivo.split('/')[-1]
 
 
 def path_absoluta(_arquivo: str) -> str:
+    """
+    extrai a path absoluta de um arquivo
+    :param _arquivo: str
+    :return: str
+    """
     return _arquivo.rsplit('/', 1)[0]
 
 
@@ -210,6 +220,10 @@ def executa_copia():
 
 
 def cria_index_html():
+    """
+    cria um arquivo de indice em html no diretorio principal listando todos os diretorios de foto abaixo dele
+    :return: None
+    """
     infos = ['', '']
     if os.path.isfile(HTML_INDICE):
         os.remove(HTML_INDICE)
@@ -236,6 +250,10 @@ def cria_index_html():
 
 
 def html_header():
+    """
+    cria um header para os arquivos html criados automaticamente
+    :return: str
+    """
     return """
         <html>
             <head>
@@ -245,6 +263,10 @@ def html_header():
 
 
 def html_footer():
+    """
+    cria um footer para os arquivos html criados automaticamente
+    :return: str
+    """
     return """
         </body>
         </html>
@@ -252,6 +274,11 @@ def html_footer():
 
 
 def formata_html(_arquivo):
+    """
+    aplica uma formatacao html com header e footer no arquivo html criado automaticamente.
+    :param _arquivo: str
+    :return: str
+    """
     with open(_arquivo, 'r') as html_indice:
         html_indice_original = html_indice.read()
     with open(_arquivo, 'w') as html_indice_novo:
