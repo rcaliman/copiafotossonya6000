@@ -30,16 +30,13 @@ def busca_arquivos(_tipo: str, _local: str) -> list:
     return sorted(lista_arquivos, reverse=True)
 
 
-def busca_arquivos_anteriores() -> list:
+def raw(_arquivo: str) -> str:
     """
-    retorna a lista de arquivos que já haviam no servidor para o sistema saber o que não copiar
-    :return: list
+    exibir o nome da versão raw do arquivo
+    :param _arquivo: str
+    :return: str
     """
-    _lista_arquivos_anteriores = []
-    for arquivos_anteriores in os.walk(PATH_SERVIDOR):
-        path, _, *_arquivos = arquivos_anteriores
-        _lista_arquivos_anteriores.extend(_arquivos[0])
-    return _lista_arquivos_anteriores
+    return _arquivo.replace('.JPG', '.ARW')
 
 
 def data_de_criacao(_arquivo: str) -> str:
@@ -62,6 +59,24 @@ def diretorio_destino(_arquivo) -> str:
     return PATH_SERVIDOR + data_de_criacao(_arquivo) + '/'
 
 
+def arquivo_destino(_arquivo: str) -> str:
+    """
+    monta a path completa de destino do arquivo
+    :param _arquivo: str
+    :return: str
+    """
+    return diretorio_destino(_arquivo) + tipo_arquivo(_arquivo) + "/" + nome_arquivo(_arquivo)
+
+
+def tipo_arquivo(_arquivo: str) -> str:
+    """
+    retorna o tipo do arquivo baseado na extensao
+    :param _arquivo: str
+    :return: str
+    """
+    return (_arquivo.rsplit('.')[1]).lower()
+
+
 def nome_arquivo(_arquivo) -> str:
     """
     retira e retorna apenas o nome do arquivo da string da path
@@ -69,6 +84,16 @@ def nome_arquivo(_arquivo) -> str:
     :return: str
     """
     return _arquivo.rsplit('/', 1)[1]
+
+
+def copia_arquivo(_arquivo: str) -> None:
+    """
+    copia o arquivo do sdcard para o diretório no disco
+    :param _arquivo: str
+    :return: None
+    """
+    destino = diretorio_destino(_arquivo) + tipo_arquivo(_arquivo)
+    copy2(_arquivo, destino)
 
 
 def path_relativa(_arquivo: str) -> str:
@@ -87,15 +112,6 @@ def path_absoluta(_arquivo: str) -> str:
     :return: str
     """
     return _arquivo.rsplit('/', 1)[0]
-
-
-def tipo_arquivo(_arquivo: str) -> str:
-    """
-    retorna o tipo do arquivo baseado na extensao
-    :param _arquivo: str
-    :return: str
-    """
-    return (_arquivo.rsplit('.')[1]).lower()
 
 
 def html_video(_arquivo: str) -> None:
@@ -139,14 +155,16 @@ def cria_diretorios(_arquivo: str) -> None:
         os.mkdir(diretorio_destino(_arquivo) + tipo_de_arquivo)
 
 
-def copia_arquivo(_arquivo: str) -> None:
+def deleta_html_thumbs(_local_dos_arquivos: str) -> None:
     """
-    copia o arquivo do sdcard para o diretório no disco
-    :param _arquivo: str
-    :return: None
+    apaga os arquivos html de thumbs para serem substituidos por arquivos atualizados
+    :param _local_dos_arquivos: str
+    :return: str
     """
-    destino = diretorio_destino(_arquivo) + tipo_arquivo(_arquivo)
-    copy2(_arquivo, destino)
+    _arquivos = busca_arquivos('html', PATH_SERVIDOR)
+    for _arquivo in _arquivos:
+        if 'thumbs.html' in _arquivo:
+            os.remove(_arquivo)
 
 
 def cria_html_thumbs(_local_dos_arquivos: str, _nome_do_arquivo: str) -> None:
@@ -157,19 +175,27 @@ def cria_html_thumbs(_local_dos_arquivos: str, _nome_do_arquivo: str) -> None:
     :return: None
     """
     _arquivo_html = _local_dos_arquivos + 'thumbs.html'
+    _arquivo_raw = _local_dos_arquivos + 'arw/' + raw(_nome_do_arquivo)
+    _link_status = 'true'
+    if os.path.isfile(_arquivo_raw):
+        _link_status = 'true'
+        _text_color = 'blue'
+    else:
+        _link_status = 'false'
+        _text_color = 'white'
     with open(_arquivo_html, 'a') as _arquivo:
         _arquivo.write(f"""
                 <div style='padding:15px;'>
                     <p>
-                        <a style='text-decoration: none' href='arw/{_nome_do_arquivo.replace('.JPG','.ARW')}'>
+                        <a style='text-decoration: none; color: blue;' href='jpg/{_nome_do_arquivo}'>
                             <strong style='font-family: "helvetica";font-size: 26px;'>
-                                [ RAW ]
+                                [ JPG ]
                             </strong>
                         </a>
                         &nbsp;&nbsp;
-                        <a style='text-decoration: none' href='jpg/{_nome_do_arquivo}'>
+                        <a style='text-decoration: none; color: {_text_color};' onclick='return {_link_status};' href='arw/{raw(_nome_do_arquivo)}'>
                             <strong style='font-family: "helvetica";font-size: 26px;'>
-                                [ JPG ]
+                                [ RAW ]
                             </strong>
                         </a>
                     </p>
@@ -186,13 +212,15 @@ def cria_thumbs(_arquivo: str) -> None:
     :param _arquivo: str
     :return: None
     """
-    tamanho_thumbs = 900, 900
-    local_de_salvamento = diretorio_destino(_arquivo) + 'thumbs/'
-    nome_de_salvamento = (_arquivo.rsplit('/', 1))[1]
-    image = Image.open(_arquivo)
-    image.thumbnail(tamanho_thumbs, 3)
-    image.save(local_de_salvamento + nome_de_salvamento)
-    cria_html_thumbs(diretorio_destino(_arquivo), nome_de_salvamento)
+    if 'thumbs' not in _arquivo:  # previne que sejam criados thumbs dos thumbs
+        tamanho_thumbs = 900, 900
+        local_de_salvamento = diretorio_destino(_arquivo) + 'thumbs/'
+        nome_de_salvamento = (_arquivo.rsplit('/', 1))[1]
+        if not os.path.isfile(local_de_salvamento + nome_de_salvamento):  # nao recria os thumbs se eles já existem
+            image = Image.open(_arquivo)
+            image.thumbnail(tamanho_thumbs, 3)
+            image.save(local_de_salvamento + nome_de_salvamento)
+        cria_html_thumbs(diretorio_destino(_arquivo), nome_de_salvamento)
 
 
 def executa_copia():
@@ -208,14 +236,9 @@ def executa_copia():
                 # cria os diretorios relativo a data das fotos e os subdiretorios para os tipos de arquivos
                 cria_diretorios(_arquivo)
                 # copia os arquivos para seus respectivos diretorios
-            nome_do_arquivo = ((str(_arquivo).split('/'))[-1:])[0]
-            if nome_do_arquivo not in busca_arquivos_anteriores():
+            if not os.path.isfile(arquivo_destino(_arquivo)):
                 copia_arquivo(_arquivo)
                 print(f'copiando arquivo {_arquivo}')
-                if 'jpg' in tipo:
-                    cria_thumbs(_arquivo)
-                if 'mp4' in tipo:
-                    html_video(_arquivo)
     print('FIM!')
 
 
@@ -227,6 +250,10 @@ def cria_index_html():
     infos = ['', '']
     if os.path.isfile(HTML_INDICE):
         os.remove(HTML_INDICE)
+    for _arquivo in (busca_arquivos('jpg', PATH_SERVIDOR)):
+        cria_thumbs(_arquivo)
+    for _arquivo in (busca_arquivos('mp4', PATH_SERVIDOR)):
+        html_video(_arquivo)
     for _arquivo in (busca_arquivos('html', PATH_SERVIDOR)):
         if 'thumbs' in _arquivo:
             if os.path.isfile(path_absoluta(_arquivo) + '/info.txt'):
@@ -309,9 +336,11 @@ def formata_html(_arquivo):
 
 if len(sys.argv) > 1:
     if sys.argv[1] == 'indexar':
+        deleta_html_thumbs(PATH_SERVIDOR)
         cria_index_html()
         formata_html(HTML_INDICE)
 else:
+    deleta_html_thumbs(PATH_SERVIDOR)
     executa_copia()
     cria_index_html()
     formata_html(HTML_INDICE)
