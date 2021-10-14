@@ -120,17 +120,18 @@ def html_video(_arquivo: str) -> None:
     :param _arquivo: str
     :return: None
     """
-    _arquivo_html = diretorio_destino(_arquivo) + '/thumbs.html'
-    with open(_arquivo_html, 'a') as thumbs:
-        thumbs.write(f"""
-                <div style='padding:15px;'>
-                    <h3>VIDEO: 
-                        <a href='mp4/{nome_arquivo(_arquivo)}'>
-                            {nome_arquivo(_arquivo)}
-                        </a>
-                    </h3>
-                </div>
-            """)
+    if os.path.isdir(diretorio_destino(_arquivo)):
+        _arquivo_html = diretorio_destino(_arquivo) + 'thumbs.html'
+        with open(_arquivo_html, 'a') as thumbs:
+            thumbs.write(f"""
+                    <div style='padding:15px;'>
+                        <h3>VIDEO: 
+                            <a href='mp4/{nome_arquivo(_arquivo)}'>
+                                {nome_arquivo(_arquivo)}
+                            </a>
+                        </h3>
+                    </div>
+                """)
 
 
 def diretorio_existe(_arquivo: str) -> bool:
