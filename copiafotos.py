@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
 import os
+import sys
 from getpass import getuser
 from datetime import datetime
 from shutil import copy2
 from PIL import Image
-
 
 PATH_SDCARD = '/media/' + str(getuser()) + '/disk'
 PATH_SERVIDOR = '/home/calmanet/arquivos/'
@@ -27,7 +27,7 @@ def busca_arquivos(_tipo: str, _local: str) -> list:
         for arquivo in arquivos[0]:
             if f'.{_tipo.upper()}' in arquivo or f'.{_tipo.lower()}' in arquivo:
                 lista_arquivos.append(str(path) + '/' + arquivo)
-    return lista_arquivos
+    return sorted(lista_arquivos, reverse=True)
 
 
 def busca_arquivos_anteriores() -> list:
@@ -236,16 +236,26 @@ def cria_index_html():
                         infos.append(i.strip())
             with open(HTML_INDICE, 'a') as index:
                 index.write(f"""
-                    <div>
-                        <h4>
-                            <a href={path_relativa(_arquivo)}>
-                                {path_relativa(_arquivo).split('/')[0]}
+                <div>
+                <table class='table table-bordered table-sm table-secondary table-striped mt-5'>
+                    <tr>
+                        <td><center>
+                            <a style='text-decoration: none;'href={path_relativa(_arquivo)}>
+                                {path_relativa(_arquivo).split('/')[0]} - {infos[0].upper()}
                             </a>
-                                <br>{infos[0].upper()}
-                                <br>{infos[1]}
-                        </h4>
-                    </div>
-                    
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan=2>
+                            {infos[1]}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan=2>
+                        </td>
+                    </tr>   
+                </table>
+                </div>      
                 """)
 
 
@@ -255,10 +265,18 @@ def html_header():
     :return: str
     """
     return """
-        <html>
+        <html lang='pt-br'>
             <head>
+                <meta charset="UTF-8" />
+                <link rel='stylesheet' type='text/css' 
+                    href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css'>
+                <script type='text/javascript' 
+                    src='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js'>
+                </script>
             </head>
             <body>
+                <div class='container d-flex justify-content-center'>
+                <div class = 'w-75'>
     """
 
 
@@ -268,7 +286,9 @@ def html_footer():
     :return: str
     """
     return """
-        </body>
+                    </div>
+                </div>
+            </body>
         </html>
     """
 
@@ -287,8 +307,11 @@ def formata_html(_arquivo):
         html_indice_novo.write(html_footer())
 
 
-executa_copia()
-cria_index_html()
-formata_html(HTML_INDICE)
-
-
+if len(sys.argv) > 1:
+    if sys.argv[1] == 'indexar':
+        cria_index_html()
+        formata_html(HTML_INDICE)
+else:
+    executa_copia()
+    cria_index_html()
+    formata_html(HTML_INDICE)
