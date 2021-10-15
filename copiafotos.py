@@ -3,14 +3,15 @@
 import os
 import sys
 from getpass import getuser
-from datetime import datetime
 from shutil import copy2
 from PIL import Image
+from datetime import datetime, timedelta
 
 PATH_SDCARD = '/media/' + str(getuser()) + '/disk'
 PATH_SERVIDOR = '/home/calmanet/arquivos/'
 HTML_INDICE = PATH_SERVIDOR + 'indice_de_fotos.html'
 TIPOS_DE_ARQUIVO = ['jpg', 'arw', 'mp4']
+DIAS_PARA_REMOCAO_ARW = 60
 
 
 def busca_arquivos(_tipo: str, _local: str) -> list:
@@ -37,6 +38,20 @@ def raw(_arquivo: str) -> str:
     :return: str
     """
     return _arquivo.replace('.JPG', '.ARW')
+
+
+def tempo_do_arquivo(_arquivo):
+    ano, mes, dia = ((_arquivo.rsplit('/'))[-3]).split('-')
+    return datetime.now() - datetime(int(ano), int(mes), int(dia))
+
+
+def remove_antigos():
+    _hoje = datetime.now()
+    _arquivos = busca_arquivos('arw', PATH_SERVIDOR)
+    for _arquivo in _arquivos:
+        if tempo_do_arquivo(_arquivo) > timedelta(DIAS_PARA_REMOCAO_ARW):
+            print(f'removendo {_arquivo}')
+            os.remove(_arquivo)
 
 
 def data_de_criacao(_arquivo: str) -> str:
@@ -337,6 +352,7 @@ def formata_html(_arquivo):
 
 if len(sys.argv) > 1:
     if sys.argv[1] == 'indexar':
+        remove_antigos()
         deleta_html_thumbs(PATH_SERVIDOR)
         cria_index_html()
         formata_html(HTML_INDICE)
