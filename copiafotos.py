@@ -10,8 +10,13 @@ from datetime import datetime, timedelta
 PATH_SDCARD = '/media/' + str(getuser()) + '/disk'
 PATH_SERVIDOR = '/home/calmanet/arquivos/'
 HTML_INDICE = PATH_SERVIDOR + 'indice_de_fotos.html'
-TIPOS_DE_ARQUIVO = ['jpg', 'arw', 'mp4']
-DIAS_PARA_REMOCAO_ARW = 60
+THUMBS_HTML = 'thumbs.html'
+DIAS_PARA_REMOCAO_ANTIGOS = 60
+TIPO = {
+    'jpg': 'jpg',
+    'raw': 'arw',
+    'mp4': 'mp4'
+}
 
 
 def busca_arquivos(_tipo: str, _local: str) -> list:
@@ -37,19 +42,30 @@ def raw(_arquivo: str) -> str:
     :param _arquivo: str
     :return: str
     """
-    return _arquivo.replace('.JPG', '.ARW')
+    return _arquivo.replace(TIPO['jpg'].upper(), TIPO['raw'].upper())
 
 
-def tempo_do_arquivo(_arquivo):
+def tempo_do_arquivo(_arquivo: str) -> timedelta:
+    """
+    calcula a quanto tempo o arquivo está no servidor para definir se ele é velho o
+    suficiente para ser deletado
+    :param _arquivo: str
+    :return: timedelta
+    """
     ano, mes, dia = ((_arquivo.rsplit('/'))[-3]).split('-')
     return datetime.now() - datetime(int(ano), int(mes), int(dia))
 
 
-def remove_antigos():
+def remove_antigos(_tipo) -> None:
+    """
+    remove arquivos arw antigos para econimizar espaco em disco
+    :param: str
+    :return: None
+    """
     _hoje = datetime.now()
-    _arquivos = busca_arquivos('arw', PATH_SERVIDOR)
+    _arquivos = busca_arquivos(_tipo, PATH_SERVIDOR)
     for _arquivo in _arquivos:
-        if tempo_do_arquivo(_arquivo) > timedelta(DIAS_PARA_REMOCAO_ARW):
+        if tempo_do_arquivo(_arquivo) > timedelta(DIAS_PARA_REMOCAO_ANTIGOS):
             print(f'removendo {_arquivo}')
             os.remove(_arquivo)
 
@@ -74,6 +90,18 @@ def diretorio_destino(_arquivo) -> str:
     return PATH_SERVIDOR + data_de_criacao(_arquivo) + '/'
 
 
+def tipo_arquivo(_arquivo: str) -> str:
+    """
+    retorna o tipo do arquivo baseado na extensao
+    :param _arquivo: str
+    :return: str
+    """
+    _tipo = (_arquivo.rsplit('.')[1]).lower()
+    for k, j in TIPO.items():
+        if j.lower() == _tipo:
+            return TIPO[k]
+
+
 def arquivo_destino(_arquivo: str) -> str:
     """
     monta a path completa de destino do arquivo
@@ -81,15 +109,6 @@ def arquivo_destino(_arquivo: str) -> str:
     :return: str
     """
     return diretorio_destino(_arquivo) + tipo_arquivo(_arquivo) + "/" + nome_arquivo(_arquivo)
-
-
-def tipo_arquivo(_arquivo: str) -> str:
-    """
-    retorna o tipo do arquivo baseado na extensao
-    :param _arquivo: str
-    :return: str
-    """
-    return (_arquivo.rsplit('.')[1]).lower()
 
 
 def nome_arquivo(_arquivo) -> str:
@@ -136,12 +155,12 @@ def html_video(_arquivo: str) -> None:
     :return: None
     """
     if os.path.isdir(diretorio_destino(_arquivo)):
-        _arquivo_html = diretorio_destino(_arquivo) + 'thumbs.html'
+        _arquivo_html = diretorio_destino(_arquivo) + THUMBS_HTML
         with open(_arquivo_html, 'a') as thumbs:
             thumbs.write(f"""
                     <div style='padding:15px;'>
                         <h3>VIDEO: 
-                            <a href='mp4/{nome_arquivo(_arquivo)}'>
+                            <a href='{TIPO['mp4']}/{nome_arquivo(_arquivo)}'>
                                 {nome_arquivo(_arquivo)}
                             </a>
                         </h3>
@@ -166,9 +185,12 @@ def cria_diretorios(_arquivo: str) -> None:
     :return: None
     """
     os.mkdir(diretorio_destino(_arquivo))
+    os.chmod(diretorio_destino(_arquivo), 0o777)
     os.mkdir(diretorio_destino(_arquivo) + 'thumbs')
-    for tipo_de_arquivo in TIPOS_DE_ARQUIVO:
+    os.chmod(diretorio_destino(_arquivo) + 'thumbs', 0o777)
+    for tipo_de_arquivo in TIPO.values():
         os.mkdir(diretorio_destino(_arquivo) + tipo_de_arquivo)
+        os.chmod(diretorio_destino(_arquivo) + tipo_de_arquivo, 0o777)
 
 
 def deleta_html_thumbs(_local_dos_arquivos: str) -> None:
@@ -179,7 +201,7 @@ def deleta_html_thumbs(_local_dos_arquivos: str) -> None:
     """
     _arquivos = busca_arquivos('html', PATH_SERVIDOR)
     for _arquivo in _arquivos:
-        if 'thumbs.html' in _arquivo:
+        if THUMBS_HTML in _arquivo:
             os.remove(_arquivo)
 
 
@@ -190,8 +212,8 @@ def cria_html_thumbs(_local_dos_arquivos: str, _nome_do_arquivo: str) -> None:
     :param _nome_do_arquivo: str
     :return: None
     """
-    _arquivo_html = _local_dos_arquivos + 'thumbs.html'
-    _arquivo_raw = _local_dos_arquivos + 'arw/' + raw(_nome_do_arquivo)
+    _arquivo_html = _local_dos_arquivos + THUMBS_HTML
+    _arquivo_raw = _local_dos_arquivos + TIPO['raw'] + '/' + raw(_nome_do_arquivo)
     _link_status = 'true'
     if os.path.isfile(_arquivo_raw):
         _link_status = 'true'
@@ -209,13 +231,14 @@ def cria_html_thumbs(_local_dos_arquivos: str, _nome_do_arquivo: str) -> None:
                             </strong>
                         </a>
                         &nbsp;&nbsp;
-                        <a style='text-decoration: none; color: {_text_color};' onclick='return {_link_status};' href='arw/{raw(_nome_do_arquivo)}'>
+                        <a style='text-decoration: none; color: {_text_color};' onclick='return {_link_status};' 
+                            href='{TIPO['raw']}/{raw(_nome_do_arquivo)}'>
                             <strong style='font-family: "helvetica";font-size: 26px;'>
                                 [ RAW ]
                             </strong>
                         </a>
                     </p>
-                    <a href='jpg/{_nome_do_arquivo}'>
+                    <a href='{TIPO['jpg']}/{_nome_do_arquivo}'>
                         <img src='thumbs/{_nome_do_arquivo}'>
                     </a>
                 </div>
@@ -244,7 +267,7 @@ def executa_copia():
     copia os arquivos do cartão de memoria para o HD
     :return: None
     """
-    for tipo in TIPOS_DE_ARQUIVO:
+    for tipo in TIPO.values():
         # para os tipos de arquivos declarados na lista no inicio do programa
         for _arquivo in busca_arquivos(tipo, PATH_SDCARD):
             # busca todos os arquivos dos tipos declarados na lista no inicio do programa
@@ -266,9 +289,9 @@ def cria_index_html():
     infos = ['', '']
     if os.path.isfile(HTML_INDICE):
         os.remove(HTML_INDICE)
-    for _arquivo in (busca_arquivos('jpg', PATH_SERVIDOR)):
+    for _arquivo in (busca_arquivos(TIPO['jpg'], PATH_SERVIDOR)):
         cria_thumbs(_arquivo)
-    for _arquivo in (busca_arquivos('mp4', PATH_SERVIDOR)):
+    for _arquivo in (busca_arquivos(TIPO['mp4'], PATH_SERVIDOR)):
         html_video(_arquivo)
     for _arquivo in (busca_arquivos('html', PATH_SERVIDOR)):
         if 'thumbs' in _arquivo:
