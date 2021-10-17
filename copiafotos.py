@@ -375,7 +375,7 @@ def formata_html(_arquivo):
 
 if len(sys.argv) > 1:
     if sys.argv[1] == 'indexar':
-        remove_antigos()
+        remove_antigos(TIPO['raw'])
         deleta_html_thumbs(PATH_SERVIDOR)
         cria_index_html()
         formata_html(HTML_INDICE)
