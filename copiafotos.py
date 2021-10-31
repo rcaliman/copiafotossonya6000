@@ -300,6 +300,7 @@ def cria_index_html():
                 with open(path_absoluta(_arquivo) + '/info.txt') as info:
                     for i in info:
                         infos.append(i.strip())
+                infos.append('') # para garantir que o infos tenha pelo menos duas linhas
             with open(HTML_INDICE, 'a') as index:
                 index.write(f"""
                 <div>
